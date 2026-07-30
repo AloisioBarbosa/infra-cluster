@@ -18,6 +18,26 @@ data "aws_ssm_parameter" "pod_subnets" {
 }
 
 
+data "aws_eks_addon_version" "cni" {
+  addon_name         = "vpc-cni"
+  kubernetes_version = var.k8s_version
+}
+
+data "aws_eks_addon_version" "coredns" {
+  addon_name         = "coredns"
+  kubernetes_version = var.k8s_version
+}
+
+data "aws_eks_addon_version" "kubeproxy" {
+  addon_name         = "kube-proxy"
+  kubernetes_version = var.k8s_version
+}
+
+data "aws_eks_addon_version" "pod_identity" {
+  addon_name         = "eks-pod-identity-agent"
+  kubernetes_version = var.k8s_version
+}
+
 data "aws_eks_cluster_auth" "default" {
   name = aws_eks_cluster.main.id
 }

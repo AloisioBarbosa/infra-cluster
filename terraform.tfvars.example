@@ -1,0 +1,17 @@
+project_name = "meuprojeto"
+region       = "us-east-1"
+environment  = "dev"
+k8s_version  = "1.31"
+
+ssm_vpc              = "/meuprojeto/vpc/vpc_id"
+ssm_public_subnets   = ["/meuprojeto/vpc/subnet_public_1a"]
+ssm_private_subnets  = ["/meuprojeto/vpc/subnet_private_1a", "/meuprojeto/vpc/subnet_private_1b", "/meuprojeto/vpc/subnet_private_1c"]
+ssm_pod_subnets      = ["/meuprojeto/vpc/subnet_private_1a", "/meuprojeto/vpc/subnet_private_1b", "/meuprojeto/vpc/subnet_private_1c"]
+
+nodes_instance_sizes = ["t3.medium"]
+
+auto_scale_options = {
+  min     = 1
+  max     = 3
+  desired = 2
+}
