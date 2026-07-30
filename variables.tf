@@ -8,6 +8,16 @@ variable "region" {
   description = "Nome da região onde os recursos serão entregues"
 }
 
+variable "environment" {
+  type        = string
+  description = "Nome do ambiente (dev, staging, prod). Usado para tagging e organização dos recursos."
+
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "O valor de 'environment' deve ser um dos seguintes: dev, staging, prod."
+  }
+}
+
 variable "k8s_version" {
   type        = string
   description = "Versão do kubernetes do projeto"
@@ -49,24 +59,24 @@ variable "nodes_instance_sizes" {
 
 variable "addon_cni_version" {
   type        = string
-  default     = "v1.18.3-eksbuild.2"
-  description = "Versão do Addon da VPC CNI"
+  default     = null
+  description = "Versão do Addon da VPC CNI. Se não definida, usa a versão padrão recomendada pela AWS para a versão do cluster (var.k8s_version)."
 }
 
 variable "addon_coredns_version" {
   type        = string
-  default     = "v1.11.3-eksbuild.1"
-  description = "Versão do Addon do CoreDNS"
+  default     = null
+  description = "Versão do Addon do CoreDNS. Se não definida, usa a versão padrão recomendada pela AWS para a versão do cluster (var.k8s_version)."
 }
 
 variable "addon_kubeproxy_version" {
   type        = string
-  default     = "v1.31.2-eksbuild.3"
-  description = "Versão do Addon do Kube-Proxy"
+  default     = null
+  description = "Versão do Addon do Kube-Proxy. Se não definida, usa a versão padrão recomendada pela AWS para a versão do cluster (var.k8s_version)."
 }
 
 variable "addon_pod_identity_version" {
   type        = string
-  default     = "v1.3.4-eksbuild.1"
-  description = "Versão do Addon do Pod Identity"
+  default     = null
+  description = "Versão do Addon do Pod Identity. Se não definida, usa a versão padrão recomendada pela AWS para a versão do cluster (var.k8s_version)."
 }
