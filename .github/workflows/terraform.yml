@@ -67,7 +67,7 @@ jobs:
 
       - name: Upload resultado para o GitHub Code Scanning
         if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.37.4
         with:
           sarif_file: "trivy-results.sarif"
 
