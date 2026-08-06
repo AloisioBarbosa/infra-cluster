@@ -63,6 +63,15 @@ o valor real é lido via `data "aws_ssm_parameter"` dentro deste repo. Os
 nomes devem bater exatamente com o que o `infra-network` publica (ver o
 `AGENTS.md` daquele repo para a lista completa).
 
+**Valor real decidido: `TF_VAR_project_name = infra-network` neste
+repositório também** — mesmo valor usado no `infra-network`, não o nome
+deste repositório (`infra-cluster`). O `project_name` vira o prefixo dos
+paths do SSM (`/infra-network/vpc/...`); se este repo usar um
+`project_name` diferente, os `data "aws_ssm_parameter"` abaixo vão tentar
+ler parâmetros que não existem e o `plan`/`apply` falha. Confirme se essa
+variable já foi criada como repository variable antes de assumir que o
+lookup do SSM funciona.
+
 ## Resolução de versão dos add-ons EKS
 
 As versões dos 4 add-ons **não são mais hardcoded**. São resolvidas via
@@ -105,9 +114,23 @@ Mesmo padrão do `infra-network`, via `default_tags` no provider `aws`:
 ## CI/CD
 
 Mesmo padrão do `infra-network`: `.github/workflows/terraform.yml` com jobs
-`lint` → `plan` → `apply`. **Pipeline ainda não está funcional** — mesmos
-itens pendentes de configuração manual, documentados em `CI-SETUP.md`
-(secret `AWS_ROLE_ARN`, variables de backend, Environments `plan`/`production`).
+`lint` → `trivy-scan` → `plan` → `apply`, mais `CI-SETUP.md` documentando
+o que falta configurar manualmente.
+
+**Ainda não verificamos via API o estado real das Variables/Secrets/
+Environments deste repositório** (diferente do `infra-network`, onde já
+confirmamos). Não assuma que algo aqui está configurado só porque está no
+`infra-network` — confira antes.
+
+Problemas já conhecidos no `infra-network` que provavelmente se repetem
+aqui, até prova em contrário:
+- A policy IAM provavelmente não cobre o backend do Terraform (bucket S3 +
+  DynamoDB) — só os recursos gerenciados (EC2/EKS/IAM/SSM/KMS)
+- A autenticação pode ter migrado de OIDC pra chaves estáticas
+  (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`) — confirme qual método
+  está ativo no `terraform.yml` antes de debugar
+- `TF_VAR_project_name` precisa ser **`infra-network`** (não
+  `infra-cluster`) — ver seção de variáveis acima
 
 ## Licença
 
