@@ -67,8 +67,9 @@ do Kubernetes antes do plan. Prefira uma versão EKS em suporte padrão.
 ## GitHub Actions
 
 Pull Requests executam format, validate, TFLint, Trivy e um plan autenticado
-por OIDC. O merge em `main` gera um novo plano e aguarda aprovação no environment
-`production` antes do apply. A configuração completa está em
+com credenciais AWS armazenadas como secrets. O merge em `main` gera um novo
+plano e aguarda aprovação no environment `production` antes do apply. A
+configuração completa e o trade-off temporário estão em
 [`CI-SETUP.md`](CI-SETUP.md).
 
 O pipeline não disponibiliza destroy. Mudanças destrutivas exigem runbook,
@@ -87,7 +88,8 @@ revisão do plano e autorização explícita.
 
 ## Roadmap
 
-1. Ativar o pipeline com OIDC, environments protegidos e branch protection.
+1. Migrar a autenticação do pipeline para uma role OIDC exclusiva, gerenciada
+   pelo `infra-bootstrap`, e eliminar as access keys estáticas.
 2. Restringir regras de security group atualmente amplas e validar conectividade.
 3. Migrar `metrics-server` e `kube-state-metrics` para `infra-platform` com
    `terraform state mv`/import documentado.

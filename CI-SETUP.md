@@ -2,20 +2,22 @@
 
 O pipeline valida todo Pull Request, gera um `terraform plan` autenticado via
 GitHub OIDC e aplica somente após merge em `main` ou acionamento manual. O job
-`apply` usa o environment `production`, que deve exigir aprovação.
+`apply` usa o environment `production`, que deve exigir aprovação. Nesta fase,
+o acesso AWS usa chaves estáticas como trade-off temporário para desbloquear o
+deploy; a migração para OIDC permanece como melhoria prioritária.
 
-## Secret
+## Secrets
 
-Crie a IAM Role no produto `infra-bootstrap`, com trust no provider
-`token.actions.githubusercontent.com`, restrita ao repositório
-`AloisioBarbosa/infra-cluster`, e cadastre apenas:
+- `AWS_ACCESS_KEY_ID`;
+- `AWS_SECRET_ACCESS_KEY`.
 
-- `AWS_ROLE_ARN`: ARN da role assumida pelo GitHub Actions.
+Use um usuário técnico dedicado, rotacione as chaves e restrinja sua policy ao
+backend S3, leitura dos parâmetros SSM e recursos EKS/EC2/IAM/KMS/OIDC deste
+produto. Nunca use credenciais de usuário pessoal ou root.
 
-Não use access keys permanentes. A role precisa acessar o backend S3 (incluindo
-o lock file), ler os parâmetros SSM do `infra-network` e gerenciar EKS, EC2,
-IAM, KMS e o provider OIDC deste produto. A role existente do `infra-network`
-não deve ser reutilizada: seu trust está restrito àquele repositório.
+Melhoria futura: criar no `infra-bootstrap` uma IAM Role exclusiva para
+`infra-cluster`, com trust em `repo:AloisioBarbosa/infra-cluster:*`, substituir
+os secrets acima por `AWS_ROLE_ARN` e restaurar `id-token: write` no workflow.
 
 ## Repository variables
 
@@ -44,7 +46,7 @@ ambiente de tipos `list` e `object` como HCL/JSON.
 ## Ordem de ativação
 
 1. Confirme que o `infra-network` foi aplicado e publicou os parâmetros SSM.
-2. Crie a role OIDC e o secret `AWS_ROLE_ARN`.
+2. Cadastre as credenciais do usuário técnico nos dois secrets.
 3. Cadastre as repository variables.
 4. Crie os environments e proteja `production`.
 5. Abra a PR e revise o plan publicado como comentário.

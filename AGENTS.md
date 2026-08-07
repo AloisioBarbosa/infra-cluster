@@ -109,8 +109,9 @@ Mesmo padrão do `infra-network`, via `default_tags` no provider `aws`:
 
 `.github/workflows/terraform.yml` executa `validate` e `security`, seguido de
 `plan` em PR ou dispatch e `apply` em push para `main` ou dispatch. Plan/apply
-usam OIDC, lock nativo do backend S3 e todas as variáveis obrigatórias via
-repository variables. `CI-SETUP.md` documenta a configuração.
+usam temporariamente `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`, lock nativo
+do backend S3 e todas as variáveis obrigatórias via repository variables.
+`CI-SETUP.md` documenta o trade-off e a migração futura para OIDC.
 
 **Ainda não verificamos via API o estado real das Variables/Secrets/
 Environments deste repositório** (diferente do `infra-network`, onde já
@@ -119,8 +120,9 @@ confirmamos). Não assuma que algo aqui está configurado só porque está no
 
 Problemas já conhecidos no `infra-network` que provavelmente se repetem
 aqui, até prova em contrário:
-- A role OIDC precisa cobrir o backend S3, os parâmetros SSM consumidos e os
-  recursos gerenciados (EKS/EC2/IAM/KMS).
+- O usuário técnico do CI precisa cobrir o backend S3, os parâmetros SSM
+  consumidos e os recursos gerenciados (EKS/EC2/IAM/KMS). OIDC é uma melhoria
+  prioritária e deve ser implementado no `infra-bootstrap`.
 - `TF_VAR_PROJECT_NAME` deve ser `infra-cluster`; os paths SSM devem manter o
   prefixo `/infra-network/vpc/`.
 
