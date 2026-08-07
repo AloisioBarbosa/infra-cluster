@@ -17,11 +17,11 @@ observabilidade básicos via Helm (`metrics-server`, `kube-state-metrics`).
 
 | Arquivo | Conteúdo |
 |---|---|
-| `versions.tf` | `required_version` e `required_providers` (aws, kubernetes, helm) |
+| `versions.tf` | `required_version` e `required_providers` (aws, kubernetes, helm, tls) |
 | `providers.tf` | providers `aws` (com `default_tags`), `kubernetes`, `helm` |
 | `backend.tf` | bloco `backend "s3" {}` **vazio** — precisa de `-backend-config` |
 | `variables.tf` | ver lista completa abaixo |
-| `data.tf` | data sources de SSM, `aws_eks_cluster_auth`, `aws_caller_identity`, `aws_eks_addon_version` (x4) |
+| `data.tf` | data sources de SSM privado/pods, `aws_eks_cluster_auth` e `aws_eks_addon_version` (x4) |
 | `eks.tf` | `aws_eks_cluster.main` — encryption via KMS, logging completo, `access_config` modo API |
 | `nodes.tf` | `aws_eks_node_group.main` — autoscaling, `lifecycle.ignore_changes` no `desired_size` |
 | `addons.tf` | 4 `aws_eks_addon` (vpc-cni, coredns, kube-proxy, eks-pod-identity-agent) |
@@ -113,10 +113,12 @@ usam temporariamente `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`, lock nativo
 do backend S3 e todas as variáveis obrigatórias via repository variables.
 `CI-SETUP.md` documenta o trade-off e a migração futura para OIDC.
 
-**Ainda não verificamos via API o estado real das Variables/Secrets/
-Environments deste repositório** (diferente do `infra-network`, onde já
-confirmamos). Não assuma que algo aqui está configurado só porque está no
-`infra-network` — confira antes.
+Variables, Secrets e Environments foram verificados via API em 7 de agosto de
+2026. As credenciais estáticas funcionam e o plan chega à leitura do SSM.
+
+**Bloqueio atual:** a run `31144053653` do `infra-network` executou o job
+`Destroy Infrastructure`; por isso os parâmetros das sub-redes não existem.
+Leia `docs/CONTINUATION.md` antes de qualquer nova execução.
 
 Problemas já conhecidos no `infra-network` que provavelmente se repetem
 aqui, até prova em contrário:

@@ -46,12 +46,14 @@ ambiente de tipos `list` e `object` como HCL/JSON.
 
 ## Ordem de ativação
 
-1. Confirme que o `infra-network` foi aplicado e publicou os parâmetros SSM.
-2. Cadastre as credenciais do usuário técnico nos dois secrets.
-3. Cadastre as repository variables.
-4. Crie os environments e proteja `production`.
-5. Abra a PR e revise o plan publicado como comentário.
-6. Faça merge; o apply aguardará aprovação no environment `production`.
+1. Siga [`docs/CONTINUATION.md`](docs/CONTINUATION.md) e restaure o
+   `infra-network`, atualmente destruído.
+2. Confirme que a rede publicou os três parâmetros SSM de sub-redes privadas.
+3. Confirme as credenciais do usuário técnico nos dois secrets.
+4. Confirme as repository variables.
+5. Proteja o environment `production`.
+6. Reexecute a PR #15 e revise o plan publicado como comentário.
+7. Faça merge; o apply aguardará aprovação no environment `production`.
 
 O pipeline não oferece `destroy`. Destruições devem usar um runbook separado,
 com revisão do plano e autorização explícita.

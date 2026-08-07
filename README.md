@@ -72,6 +72,9 @@ plano e aguarda aprovação no environment `production` antes do apply. A
 configuração completa e o trade-off temporário estão em
 [`CI-SETUP.md`](CI-SETUP.md).
 
+O ambiente está pausado após um destroy do `infra-network`. Consulte o
+[`plano de retomada`](docs/CONTINUATION.md) antes de reexecutar plan ou apply.
+
 O pipeline não disponibiliza destroy. Mudanças destrutivas exigem runbook,
 revisão do plano e autorização explícita.
 
@@ -85,6 +88,8 @@ revisão do plano e autorização explícita.
   nodes na validação.
 - Falhas de lookup SSM indicam que a rede não foi aplicada, a região está
   incorreta ou a role do CI não possui `ssm:GetParameter`.
+- Em 7 de agosto de 2026, o bloqueio confirmado é a ausência da rede após a
+  execução bem-sucedida do job `Destroy Infrastructure` no `infra-network`.
 
 ## Roadmap
 
