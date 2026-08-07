@@ -1,12 +1,12 @@
-project_name = "meuprojeto"
+project_name = "infra-cluster"
 region       = "us-east-1"
 environment  = "dev"
-k8s_version  = "1.31"
+k8s_version  = "1.33"
 
-ssm_vpc              = "/meuprojeto/vpc/vpc_id"
-ssm_public_subnets   = ["/meuprojeto/vpc/subnet_public_1a"]
-ssm_private_subnets  = ["/meuprojeto/vpc/subnet_private_1a", "/meuprojeto/vpc/subnet_private_1b", "/meuprojeto/vpc/subnet_private_1c"]
-ssm_pod_subnets      = ["/meuprojeto/vpc/subnet_private_1a", "/meuprojeto/vpc/subnet_private_1b", "/meuprojeto/vpc/subnet_private_1c"]
+ssm_vpc              = "/infra-network/vpc/vpc_id"
+ssm_public_subnets   = ["/infra-network/vpc/subnet_public_1a", "/infra-network/vpc/subnet_public_1b", "/infra-network/vpc/subnet_public_1c"]
+ssm_private_subnets  = ["/infra-network/vpc/subnet_private_1a", "/infra-network/vpc/subnet_private_1b", "/infra-network/vpc/subnet_private_1c"]
+ssm_pod_subnets      = ["/infra-network/vpc/subnet_private_1a", "/infra-network/vpc/subnet_private_1b", "/infra-network/vpc/subnet_private_1c"]
 
 nodes_instance_sizes = ["t3.medium"]
 
