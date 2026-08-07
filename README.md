@@ -5,6 +5,21 @@ rede publicada pelo [`infra-network`](https://github.com/AloisioBarbosa/infra-ne
 via AWS Systems Manager Parameter Store e publica os dados do cluster para os
 produtos downstream.
 
+## Estado operacional
+
+Implantação confirmada em 7 de agosto de 2026:
+
+- `infra-network`: apply concluído com sucesso na run
+  [`31185537460`](https://github.com/AloisioBarbosa/infra-network/actions/runs/31185537460);
+- `infra-cluster`: apply concluído com sucesso na run
+  [`31186635717`](https://github.com/AloisioBarbosa/infra-cluster/actions/runs/31186635717);
+- cluster EKS `infra-cluster`: `ACTIVE` em `us-east-1`;
+- Kubernetes: `1.33`;
+- managed node group: `infra-cluster`.
+
+O produto está implantado, mas ainda não deve ser classificado como
+production-ready até concluir as pendências de segurança e operação do roadmap.
+
 ## Escopo do produto
 
 Inclui:
@@ -72,8 +87,9 @@ plano e aguarda aprovação no environment `production` antes do apply. A
 configuração completa e o trade-off temporário estão em
 [`CI-SETUP.md`](CI-SETUP.md).
 
-O ambiente está pausado após um destroy do `infra-network`. Consulte o
-[`plano de retomada`](docs/CONTINUATION.md) antes de reexecutar plan ou apply.
+O incidente de dependência ausente foi resolvido. O
+[`registro de retomada`](docs/CONTINUATION.md) preserva a causa, a recuperação
+executada e as pendências restantes.
 
 O pipeline não disponibiliza destroy. Mudanças destrutivas exigem runbook,
 revisão do plano e autorização explícita.
@@ -88,8 +104,8 @@ revisão do plano e autorização explícita.
   nodes na validação.
 - Falhas de lookup SSM indicam que a rede não foi aplicada, a região está
   incorreta ou a role do CI não possui `ssm:GetParameter`.
-- Em 7 de agosto de 2026, o bloqueio confirmado é a ausência da rede após a
-  execução bem-sucedida do job `Destroy Infrastructure` no `infra-network`.
+- A remoção ou indisponibilidade dos parâmetros SSM do `infra-network` bloqueia
+  corretamente o plan deste produto; restaure a rede antes de prosseguir.
 
 ## Roadmap
 

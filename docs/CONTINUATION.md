@@ -1,18 +1,20 @@
-# Plano de retomada do `infra-cluster`
+# Registro de retomada do `infra-cluster`
 
 Atualizado em 7 de agosto de 2026.
 
-## Estado atual
+## Resultado
 
-- Pull Request em preparação: [#15](https://github.com/AloisioBarbosa/infra-cluster/pull/15).
-- Branch: `codex/enable-cluster-deploy`.
+- Pull Request [#15](https://github.com/AloisioBarbosa/infra-cluster/pull/15)
+  mesclada em 7 de agosto de 2026.
 - Conta AWS confirmada: `920278691034`.
 - Região confirmada: `us-east-1`.
 - `terraform fmt`, `terraform validate`, TFLint e Trivy estão passando.
 - A autenticação do GitHub Actions com `AWS_ACCESS_KEY_ID` e
   `AWS_SECRET_ACCESS_KEY` funciona.
-- O Terraform chega ao `plan`, mas falha porque os parâmetros SSM das sub-redes
-  privadas não existem.
+- `infra-network` restaurado com apply bem-sucedido na run `31185537460`.
+- `infra-cluster` implantado com apply bem-sucedido na run `31186635717`.
+- EKS `infra-cluster` confirmado como `ACTIVE`, Kubernetes `1.33`, com o managed
+  node group `infra-cluster`.
 
 ## Causa do bloqueio
 
@@ -27,27 +29,27 @@ Parâmetros exigidos pelo cluster:
 - `/infra-network/vpc/subnet_private_1b`;
 - `/infra-network/vpc/subnet_private_1c`.
 
-O `infra-cluster` não deve ser aplicado enquanto esses parâmetros não existirem.
+O bloqueio foi resolvido após a restauração do `infra-network` e a republicação
+desses parâmetros.
 
-## Sequência segura para continuar
+## Recuperação executada
 
-1. Revisar o `terraform plan` do `infra-network` e confirmar que ele recria a
-   VPC, três sub-redes privadas e os três parâmetros SSM acima.
-2. Executar `infra-network` com `workflow_dispatch` e `action=apply`.
-3. Confirmar o apply verde e validar apenas os nomes dos parâmetros:
+1. O `infra-network` foi executado com `workflow_dispatch` e `action=apply`.
+2. O apply da rede concluiu com sucesso e republicou seu contrato SSM.
+3. O plan da PR #15 foi reexecutado e aprovado.
+4. A PR #15 foi mesclada em `main`.
+5. O apply do `infra-cluster` concluiu com sucesso.
+6. O status do EKS e a presença do node group foram confirmados via AWS API.
 
-   ```bash
-   aws ssm get-parameter --region us-east-1 \
-     --name /infra-network/vpc/subnet_private_1a \
-     --query Parameter.Name --output text
-   ```
+Para futuras verificações do contrato, valide somente os nomes dos parâmetros:
 
-   Repetir para `1b` e `1c`.
-4. Reexecutar os jobs com falha da PR #15 do `infra-cluster`.
-5. Revisar o comentário automático do Terraform Plan. O plano esperado não
-   pode conter deleções ou substituições inesperadas.
-6. Somente depois de um plan aprovado, fazer merge e autorizar o environment
-   `production` para o apply do cluster.
+```bash
+aws ssm get-parameter --region us-east-1 \
+  --name /infra-network/vpc/subnet_private_1a \
+  --query Parameter.Name --output text
+```
+
+Repita para `1b` e `1c`.
 
 ## Trade-offs e pendências
 
@@ -61,9 +63,9 @@ O `infra-cluster` não deve ser aplicado enquanto esses parâmetros não existir
 - Migrar `metrics-server` e `kube-state-metrics` para `infra-platform` em uma
   mudança futura com preservação explícita do state.
 
-## Ações proibidas na retomada
+## Guardrails permanentes
 
 - Não acionar `destroy` no `infra-network` ou `infra-cluster`.
-- Não executar apply do cluster antes de restaurar e validar a rede.
+- Não executar apply do cluster sem validar primeiro o contrato SSM da rede.
 - Não editar o state Terraform manualmente.
 - Não publicar access keys, tokens, arquivos `.tfstate` ou planos sensíveis.
