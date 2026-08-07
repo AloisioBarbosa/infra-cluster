@@ -23,16 +23,6 @@ variable "k8s_version" {
   description = "Versão do kubernetes do projeto"
 }
 
-variable "ssm_vpc" {
-  type        = string
-  description = "ID do SSM onde está o id da VPC onde o projeto será criado"
-}
-
-variable "ssm_public_subnets" {
-  type        = list(string)
-  description = "Lista dos ID's do SSM onde estão as subnets públicas do projeto"
-}
-
 variable "ssm_private_subnets" {
   type        = list(string)
   description = "Lista dos ID's do SSM onde estão as subnets privadas do projeto"

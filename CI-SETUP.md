@@ -1,37 +1,59 @@
-# Configuração necessária para o CI/CD funcionar
+# GitHub Actions: configuração do produto `infra-cluster`
 
-O workflow em `.github/workflows/terraform.yml` depende de itens que precisam
-ser configurados manualmente no GitHub (Settings → Secrets and variables →
-Actions), pois envolvem dados da sua conta AWS que este PR não tem acesso.
+O pipeline valida todo Pull Request, gera um `terraform plan` autenticado com
+credenciais AWS armazenadas como secrets e aplica somente após merge em `main`
+ou acionamento manual. O job
+`apply` usa o environment `production`, que deve exigir aprovação. Nesta fase,
+o acesso AWS usa chaves estáticas como trade-off temporário para desbloquear o
+deploy; a migração para OIDC permanece como melhoria prioritária.
 
-## 1. Role de OIDC na AWS (sem chaves estáticas)
+## Secrets
 
-Crie uma IAM Role com trust policy para o GitHub OIDC provider
-(`token.actions.githubusercontent.com`), restrita a este repositório, e
-adicione o ARN como secret:
+- `AWS_ACCESS_KEY_ID`;
+- `AWS_SECRET_ACCESS_KEY`.
 
-- Secret: `AWS_ROLE_ARN`
+Use um usuário técnico dedicado, rotacione as chaves e restrinja sua policy ao
+backend S3, leitura dos parâmetros SSM e recursos EKS/EC2/IAM/KMS/OIDC deste
+produto. Nunca use credenciais de usuário pessoal ou root.
 
-## 2. Variáveis do backend do Terraform (não sensíveis → "Variables", não "Secrets")
+Melhoria futura: criar no `infra-bootstrap` uma IAM Role exclusiva para
+`infra-cluster`, com trust em `repo:AloisioBarbosa/infra-cluster:*`, substituir
+os secrets acima por `AWS_ROLE_ARN` e restaurar `id-token: write` no workflow.
 
-- `AWS_REGION`
-- `TF_STATE_BUCKET`
-- `TF_STATE_KEY` (ex: `infra-network/terraform.tfstate`)
-- `TF_LOCK_TABLE`
+## Repository variables
 
-## 3. Environments do GitHub (aprovação manual antes do apply)
+| Nome | Valor inicial |
+|---|---|
+| `AWS_REGION` | `us-east-1` |
+| `TF_STATE_BUCKET` | `orange-ks8-logs` |
+| `TF_STATE_KEY` | `cluster/dev/terraform.tfstate` |
+| `TF_VAR_PROJECT_NAME` | `infra-cluster` |
+| `TF_VAR_REGION` | `us-east-1` |
+| `TF_VAR_ENVIRONMENT` | `dev` |
+| `TF_VAR_K8S_VERSION` | `1.33` |
+| `TF_VAR_SSM_PRIVATE_SUBNETS` | `["/infra-network/vpc/subnet_private_1a","/infra-network/vpc/subnet_private_1b","/infra-network/vpc/subnet_private_1c"]` |
+| `TF_VAR_SSM_POD_SUBNETS` | `["/infra-network/vpc/subnet_private_1a","/infra-network/vpc/subnet_private_1b","/infra-network/vpc/subnet_private_1c"]` |
+| `TF_VAR_NODES_INSTANCE_SIZES` | `["t3.medium"]` |
+| `TF_VAR_AUTO_SCALE_OPTIONS` | `{"min":1,"max":3,"desired":2}` |
 
-O token usado para automatizar este PR não tem permissão para criar
-Environments via API. Configure manualmente em Settings → Environments:
+Os valores complexos são JSON válido porque o Terraform interpreta variáveis de
+ambiente de tipos `list` e `object` como HCL/JSON.
 
-- `plan` — sem restrição, usado só pelo job de plan em PRs
-- `production` — adicione você mesmo como *required reviewer*, para que o
-  job de `apply` fique pausado aguardando aprovação manual antes de rodar
+## Environments
 
-## 4. Variáveis de aplicação do Terraform
+- `plan`: sem aprovação, usado em PRs e em execuções manuais de plan.
+- `production`: com required reviewer e prevenção de self-review.
 
-As variáveis do próprio módulo (`project_name`, `k8s_version`, etc. — ver
-`terraform.tfvars.example`) ainda precisam ser passadas ao `terraform plan`
-e `terraform apply` no workflow, seja via `-var` explícito, seja via um
-`terraform.tfvars` versionado (sem segredos) ou `TF_VAR_*` nas variáveis
-do ambiente do GitHub.
+## Ordem de ativação
+
+1. Siga [`docs/CONTINUATION.md`](docs/CONTINUATION.md) e restaure o
+   `infra-network`, atualmente destruído.
+2. Confirme que a rede publicou os três parâmetros SSM de sub-redes privadas.
+3. Confirme as credenciais do usuário técnico nos dois secrets.
+4. Confirme as repository variables.
+5. Proteja o environment `production`.
+6. Reexecute a PR #15 e revise o plan publicado como comentário.
+7. Faça merge; o apply aguardará aprovação no environment `production`.
+
+O pipeline não oferece `destroy`. Destruições devem usar um runbook separado,
+com revisão do plano e autorização explícita.

@@ -1,79 +1,109 @@
-# 
-Repositório do cluster minimo de EKS do curso
+# infra-cluster
 
-<!-- BEGIN_TF_DOCS -->
-## Requirements
+Produto de infraestrutura responsável pela fundação do Amazon EKS. Consome a
+rede publicada pelo [`infra-network`](https://github.com/AloisioBarbosa/infra-network)
+via AWS Systems Manager Parameter Store e publica os dados do cluster para os
+produtos downstream.
 
-No requirements.
+## Escopo do produto
 
-## Providers
+Inclui:
 
-| Name | Version |
-|------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 5.80.0 |
-| <a name="provider_helm"></a> [helm](#provider\_helm) | 2.16.1 |
-| <a name="provider_tls"></a> [tls](#provider\_tls) | 4.0.6 |
+- cluster EKS, KMS e logs do control plane;
+- managed node group e IAM das instâncias;
+- add-ons gerenciados `vpc-cni`, `coredns`, `kube-proxy` e
+  `eks-pod-identity-agent`;
+- autenticação, access entry dos nodes e provider OIDC do cluster;
+- outputs que formam o contrato com `infra-platform`.
 
-## Modules
+Não inclui novos serviços compartilhados, workloads de aplicação, rede ou
+observabilidade completa. `metrics-server` e `kube-state-metrics` ainda estão
+neste state por legado e serão migrados para `infra-platform` em uma PR futura,
+com movimentação de state planejada para evitar recriação.
 
-No modules.
+## Dependências e contratos
 
-## Resources
+```mermaid
+flowchart LR
+  B["infra-bootstrap\nbackend, IAM e governanca"] --> N["infra-network\nVPC e sub-redes"]
+  N -->|"parametros SSM /infra-network/vpc/*"| C["infra-cluster\nEKS e nodes"]
+  C -->|"outputs do cluster"| P["infra-platform\nservicos compartilhados"]
+  P --> A["infra-apps\nworkloads GitOps"]
+  C --> O["infra-observability\ntelemetria"]
+```
 
-| Name | Type |
-|------|------|
-| [aws_eks_access_entry.nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
-| [aws_eks_addon.cni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
-| [aws_eks_addon.coredns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
-| [aws_eks_addon.kubeproxy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
-| [aws_eks_cluster.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
-| [aws_eks_node_group.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
-| [aws_iam_instance_profile.nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_instance_profile) | resource |
-| [aws_iam_openid_connect_provider.eks](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
-| [aws_iam_role.eks_cluster_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
-| [aws_iam_role.eks_nodes_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
-| [aws_iam_role_policy_attachment.cloudwatch](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.cni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.ecr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.eks_cluster_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.eks_service_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.ssm](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_kms_alias.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
-| [aws_kms_key.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | resource |
-| [aws_security_group_rule.coredns_tcp](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.coredns_udp](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.nodeports](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [helm_release.kube_state_metrics](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
-| [helm_release.metrics_server](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
-| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
-| [aws_eks_cluster_auth.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_cluster_auth) | data source |
-| [aws_iam_policy_document.cluster](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_iam_policy_document.nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_ssm_parameter.pod_subnets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
-| [aws_ssm_parameter.private_subnets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
-| [aws_ssm_parameter.public_subnets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
-| [aws_ssm_parameter.vpc](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
-| [tls_certificate.eks](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/data-sources/certificate) | data source |
+Inputs da rede:
 
-## Inputs
+- `/infra-network/vpc/subnet_private_1a`, `1b` e `1c`;
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_addon_cni_version"></a> [addon\_cni\_version](#input\_addon\_cni\_version) | Versão do Addon da VPC CNI | `string` | `"v1.18.3-eksbuild.2"` | no |
-| <a name="input_addon_coredns_version"></a> [addon\_coredns\_version](#input\_addon\_coredns\_version) | Versão do Addon do CoreDNS | `string` | `"v1.11.3-eksbuild.1"` | no |
-| <a name="input_addon_kubeproxy_version"></a> [addon\_kubeproxy\_version](#input\_addon\_kubeproxy\_version) | Versão do Addon do Kube-Proxy | `string` | `"v1.31.2-eksbuild.3"` | no |
-| <a name="input_auto_scale_options"></a> [auto\_scale\_options](#input\_auto\_scale\_options) | Configurações de Autoscaling do Cluster | <pre>object({<br>    min     = number<br>    max     = number<br>    desired = number<br>  })</pre> | n/a | yes |
-| <a name="input_k8s_version"></a> [k8s\_version](#input\_k8s\_version) | Versão do kubernetes do projeto | `string` | n/a | yes |
-| <a name="input_nodes_instance_sizes"></a> [nodes\_instance\_sizes](#input\_nodes\_instance\_sizes) | Lista de tamanhos das instâncias do projeto | `list(string)` | n/a | yes |
-| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Nome do projeto / cluster | `string` | n/a | yes |
-| <a name="input_region"></a> [region](#input\_region) | Nome da região onde os recursos serão entregues | `string` | n/a | yes |
-| <a name="input_ssm_pod_subnets"></a> [ssm\_pod\_subnets](#input\_ssm\_pod\_subnets) | Lista dos ID's do SSM onde estão as subnets de pods do projeto | `list(string)` | n/a | yes |
-| <a name="input_ssm_private_subnets"></a> [ssm\_private\_subnets](#input\_ssm\_private\_subnets) | Lista dos ID's do SSM onde estão as subnets privadas do projeto | `list(string)` | n/a | yes |
-| <a name="input_ssm_public_subnets"></a> [ssm\_public\_subnets](#input\_ssm\_public\_subnets) | Lista dos ID's do SSM onde estão as subnets públicas do projeto | `list(string)` | n/a | yes |
-| <a name="input_ssm_vpc"></a> [ssm\_vpc](#input\_ssm\_vpc) | ID do SSM onde está o id da VPC onde o projeto será criado | `string` | n/a | yes |
+Outputs publicados:
 
-## Outputs
+- `cluster_name` e `cluster_endpoint`;
+- `cluster_certificate_authority_data` (sensitive);
+- `cluster_oidc_issuer_url`;
+- `cluster_security_group_id`;
+- `node_role_arn`.
 
-No outputs.
-<!-- END_TF_DOCS -->
+## Uso local
+
+Pré-requisitos: Terraform 1.7 ou superior, credenciais AWS e o
+`infra-network` já aplicado.
+
+```bash
+cp terraform.tfvars.example terraform.tfvars
+terraform init \
+  -backend-config="bucket=<bucket>" \
+  -backend-config="key=cluster/dev/terraform.tfstate" \
+  -backend-config="region=us-east-1" \
+  -backend-config="use_lockfile=true"
+terraform fmt -check -recursive
+terraform validate
+terraform plan
+```
+
+O arquivo `terraform.tfvars` não deve ser commitado. Adapte capacidade e versão
+do Kubernetes antes do plan. Prefira uma versão EKS em suporte padrão.
+
+## GitHub Actions
+
+Pull Requests executam format, validate, TFLint, Trivy e um plan autenticado
+com credenciais AWS armazenadas como secrets. O merge em `main` gera um novo
+plano e aguarda aprovação no environment `production` antes do apply. A
+configuração completa e o trade-off temporário estão em
+[`CI-SETUP.md`](CI-SETUP.md).
+
+O ambiente está pausado após um destroy do `infra-network`. Consulte o
+[`plano de retomada`](docs/CONTINUATION.md) antes de reexecutar plan ou apply.
+
+O pipeline não disponibiliza destroy. Mudanças destrutivas exigem runbook,
+revisão do plano e autorização explícita.
+
+## Operação e rollback
+
+- Não execute dois plans/applies para o mesmo state em paralelo.
+- Revise substituições (`-/+`) e deleções antes de aprovar production.
+- Para rollback de código, reverta o commit e gere um novo plan; o state não
+  deve ser alterado manualmente sem backup e plano de migração.
+- Upgrades do EKS devem avançar uma minor version por vez, incluindo add-ons e
+  nodes na validação.
+- Falhas de lookup SSM indicam que a rede não foi aplicada, a região está
+  incorreta ou a role do CI não possui `ssm:GetParameter`.
+- Em 7 de agosto de 2026, o bloqueio confirmado é a ausência da rede após a
+  execução bem-sucedida do job `Destroy Infrastructure` no `infra-network`.
+
+## Roadmap
+
+1. Migrar a autenticação do pipeline para uma role OIDC exclusiva, gerenciada
+   pelo `infra-bootstrap`, e eliminar as access keys estáticas.
+2. Restringir regras de security group atualmente amplas e validar conectividade.
+3. Migrar `metrics-server` e `kube-state-metrics` para `infra-platform` com
+   `terraform state mv`/import documentado.
+4. Publicar o contrato do cluster em SSM para reduzir acoplamento a remote state.
+5. Adicionar testes Terraform e política de upgrade periódico do EKS.
+
+## Ownership
+
+Owner: time de Cloud Platform. Alterações exigem revisão de segurança para IAM,
+KMS, endpoints, security groups ou trust policies e evidência do Terraform plan.
+
+Licença: MIT.

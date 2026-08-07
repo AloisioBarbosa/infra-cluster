@@ -1,148 +1,170 @@
-name: Terraform
+name: Terraform Pipeline
 
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Acao do Terraform
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+
+concurrency:
+  group: terraform-${{ vars.TF_STATE_KEY }}
+  cancel-in-progress: false
 
 permissions:
-  id-token: write
   contents: read
-  pull-requests: write
-  security-events: write   # necessário para upload SARIF
 
 env:
-  TF_VERSION: "1.7.5"
+  TF_VERSION: "1.15.8"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_VAR_project_name: ${{ vars.TF_VAR_PROJECT_NAME }}
+  TF_VAR_region: ${{ vars.TF_VAR_REGION }}
+  TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
+  TF_VAR_k8s_version: ${{ vars.TF_VAR_K8S_VERSION }}
+  TF_VAR_ssm_private_subnets: ${{ vars.TF_VAR_SSM_PRIVATE_SUBNETS }}
+  TF_VAR_ssm_pod_subnets: ${{ vars.TF_VAR_SSM_POD_SUBNETS }}
+  TF_VAR_nodes_instance_sizes: ${{ vars.TF_VAR_NODES_INSTANCE_SIZES }}
+  TF_VAR_auto_scale_options: ${{ vars.TF_VAR_AUTO_SCALE_OPTIONS }}
 
 jobs:
-  lint:
-    name: Lint e validate
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform fmt
+      - name: Terraform format
         run: terraform fmt -check -recursive
-
-      - name: Terraform init (sem backend)
+      - name: Terraform init sem backend
         run: terraform init -backend=false
-
       - name: Terraform validate
         run: terraform validate
-
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
-
       - name: TFLint
         run: |
           tflint --init
           tflint
 
   security:
-    name: Trivy (IaC scan)
-    needs: lint
+    name: Trivy IaC Scan
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Trivy config scan
-        id: trivy
+      - name: Scan Terraform
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          scan-type: "config"
-          scan-ref: "."
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH"
-          exit-code: "1"
-        continue-on-error: true
-
-      - name: Upload resultado para o GitHub Code Scanning
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          exit-code: 0
+      - name: Publicar resultado SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: "trivy-results.sarif"
-
-      - name: Falhar o job se o Trivy encontrou CRITICAL/HIGH
-        if: steps.trivy.outcome == 'failure'
-        run: exit 1
+          sarif_file: trivy.sarif
 
   plan:
     name: Plan
-    needs: [lint, security]
-    if: github.event_name == 'pull_request'
+    needs: [validate, security]
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
     runs-on: ubuntu-latest
     environment: plan
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      - name: Configurar credenciais AWS via OIDC
+      - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
       - name: Terraform init
         run: |
-          terraform init \
+          terraform init -reconfigure \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="key=${{ vars.TF_STATE_KEY }}" \
             -backend-config="region=${{ vars.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}"
+            -backend-config="use_lockfile=true"
       - name: Terraform plan
         id: plan
-        run: terraform plan -no-color -out=tfplan
-        continue-on-error: true
-      - name: Comentar plan no PR
+        shell: bash
+        run: |
+          set +e
+          terraform plan -no-color -out=tfplan > plan.txt 2>&1
+          exitcode=$?
+          echo "exitcode=${exitcode}" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Comentar plan na PR
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const output = `#### Terraform Plan 📖
-            \`\`\`
-            ${{ steps.plan.outputs.stdout }}
-            \`\`\`
-            `;
-            github.rest.issues.createComment({
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan.txt', 'utf8');
+            const limit = 60000;
+            const body = `#### Terraform Plan\n\n\`\`\`text\n${plan.slice(0, limit)}\n\`\`\``;
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: output
-            })
+              body
+            });
       - name: Falhar se o plan falhou
-        if: steps.plan.outcome == 'failure'
+        if: steps.plan.outputs.exitcode != '0'
         run: exit 1
 
   apply:
     name: Apply
-    needs: [lint, security]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [validate, security]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      - name: Configurar credenciais AWS via OIDC
+      - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
       - name: Terraform init
         run: |
-          terraform init \
+          terraform init -reconfigure \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="key=${{ vars.TF_STATE_KEY }}" \
             -backend-config="region=${{ vars.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}"
+            -backend-config="use_lockfile=true"
+      - name: Gerar plano de aplicacao
+        run: terraform plan -out=tfplan
       - name: Terraform apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan

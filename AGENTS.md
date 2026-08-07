@@ -17,11 +17,11 @@ observabilidade básicos via Helm (`metrics-server`, `kube-state-metrics`).
 
 | Arquivo | Conteúdo |
 |---|---|
-| `versions.tf` | `required_version` e `required_providers` (aws, kubernetes, helm) |
+| `versions.tf` | `required_version` e `required_providers` (aws, kubernetes, helm, tls) |
 | `providers.tf` | providers `aws` (com `default_tags`), `kubernetes`, `helm` |
 | `backend.tf` | bloco `backend "s3" {}` **vazio** — precisa de `-backend-config` |
 | `variables.tf` | ver lista completa abaixo |
-| `data.tf` | data sources de SSM, `aws_eks_cluster_auth`, `aws_caller_identity`, `aws_eks_addon_version` (x4) |
+| `data.tf` | data sources de SSM privado/pods, `aws_eks_cluster_auth` e `aws_eks_addon_version` (x4) |
 | `eks.tf` | `aws_eks_cluster.main` — encryption via KMS, logging completo, `access_config` modo API |
 | `nodes.tf` | `aws_eks_node_group.main` — autoscaling, `lifecycle.ignore_changes` no `desired_size` |
 | `addons.tf` | 4 `aws_eks_addon` (vpc-cni, coredns, kube-proxy, eks-pod-identity-agent) |
@@ -46,8 +46,6 @@ variable "project_name"              { type = string }               # obrigató
 variable "region"                    { type = string }               # obrigatória
 variable "environment"               { type = string }               # obrigatória: "dev" | "staging" | "prod"
 variable "k8s_version"               { type = string }               # obrigatória, ex: "1.31"
-variable "ssm_vpc"                   { type = string }               # nome do parametro SSM da VPC
-variable "ssm_public_subnets"        { type = list(string) }         # nomes dos parametros SSM
 variable "ssm_private_subnets"       { type = list(string) }         # nomes dos parametros SSM
 variable "ssm_pod_subnets"           { type = list(string) }         # nomes dos parametros SSM (reaproveita subnets privadas)
 variable "auto_scale_options"        { type = object({ min = number, max = number, desired = number }) }
@@ -63,14 +61,10 @@ o valor real é lido via `data "aws_ssm_parameter"` dentro deste repo. Os
 nomes devem bater exatamente com o que o `infra-network` publica (ver o
 `AGENTS.md` daquele repo para a lista completa).
 
-**Valor real decidido: `TF_VAR_project_name = infra-network` neste
-repositório também** — mesmo valor usado no `infra-network`, não o nome
-deste repositório (`infra-cluster`). O `project_name` vira o prefixo dos
-paths do SSM (`/infra-network/vpc/...`); se este repo usar um
-`project_name` diferente, os `data "aws_ssm_parameter"` abaixo vão tentar
-ler parâmetros que não existem e o `plan`/`apply` falha. Confirme se essa
-variable já foi criada como repository variable antes de assumir que o
-lookup do SSM funciona.
+**Contrato atual:** `TF_VAR_project_name = infra-cluster` identifica este
+produto e nomeia o cluster. Os inputs `TF_VAR_ssm_*` recebem explicitamente os
+paths publicados pelo `infra-network` sob `/infra-network/vpc/*`. O código não
+deriva os paths SSM de `project_name`; não acople esses conceitos novamente.
 
 ## Resolução de versão dos add-ons EKS
 
@@ -113,24 +107,26 @@ Mesmo padrão do `infra-network`, via `default_tags` no provider `aws`:
 
 ## CI/CD
 
-Mesmo padrão do `infra-network`: `.github/workflows/terraform.yml` com jobs
-`lint` → `trivy-scan` → `plan` → `apply`, mais `CI-SETUP.md` documentando
-o que falta configurar manualmente.
+`.github/workflows/terraform.yml` executa `validate` e `security`, seguido de
+`plan` em PR ou dispatch e `apply` em push para `main` ou dispatch. Plan/apply
+usam temporariamente `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`, lock nativo
+do backend S3 e todas as variáveis obrigatórias via repository variables.
+`CI-SETUP.md` documenta o trade-off e a migração futura para OIDC.
 
-**Ainda não verificamos via API o estado real das Variables/Secrets/
-Environments deste repositório** (diferente do `infra-network`, onde já
-confirmamos). Não assuma que algo aqui está configurado só porque está no
-`infra-network` — confira antes.
+Variables, Secrets e Environments foram verificados via API em 7 de agosto de
+2026. As credenciais estáticas funcionam e o plan chega à leitura do SSM.
+
+**Bloqueio atual:** a run `31144053653` do `infra-network` executou o job
+`Destroy Infrastructure`; por isso os parâmetros das sub-redes não existem.
+Leia `docs/CONTINUATION.md` antes de qualquer nova execução.
 
 Problemas já conhecidos no `infra-network` que provavelmente se repetem
 aqui, até prova em contrário:
-- A policy IAM provavelmente não cobre o backend do Terraform (bucket S3 +
-  DynamoDB) — só os recursos gerenciados (EC2/EKS/IAM/SSM/KMS)
-- A autenticação pode ter migrado de OIDC pra chaves estáticas
-  (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`) — confirme qual método
-  está ativo no `terraform.yml` antes de debugar
-- `TF_VAR_project_name` precisa ser **`infra-network`** (não
-  `infra-cluster`) — ver seção de variáveis acima
+- O usuário técnico do CI precisa cobrir o backend S3, os parâmetros SSM
+  consumidos e os recursos gerenciados (EKS/EC2/IAM/KMS). OIDC é uma melhoria
+  prioritária e deve ser implementado no `infra-bootstrap`.
+- `TF_VAR_PROJECT_NAME` deve ser `infra-cluster`; os paths SSM devem manter o
+  prefixo `/infra-network/vpc/`.
 
 ## Licença
 
@@ -143,4 +139,4 @@ MIT. Mesmo racional do `infra-network`.
   `app-gitops`)
 - Separação por ambiente
 - Migração dos providers kubernetes/helm para v3
-- IAM role de OIDC configurada para o CI
+- IAM role de OIDC criada na AWS ou secret `AWS_ROLE_ARN` configurado no GitHub
