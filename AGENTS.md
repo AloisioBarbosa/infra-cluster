@@ -46,8 +46,6 @@ variable "project_name"              { type = string }               # obrigató
 variable "region"                    { type = string }               # obrigatória
 variable "environment"               { type = string }               # obrigatória: "dev" | "staging" | "prod"
 variable "k8s_version"               { type = string }               # obrigatória, ex: "1.31"
-variable "ssm_vpc"                   { type = string }               # nome do parametro SSM da VPC
-variable "ssm_public_subnets"        { type = list(string) }         # nomes dos parametros SSM
 variable "ssm_private_subnets"       { type = list(string) }         # nomes dos parametros SSM
 variable "ssm_pod_subnets"           { type = list(string) }         # nomes dos parametros SSM (reaproveita subnets privadas)
 variable "auto_scale_options"        { type = object({ min = number, max = number, desired = number }) }

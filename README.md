@@ -34,9 +34,7 @@ flowchart LR
 
 Inputs da rede:
 
-- `/infra-network/vpc/vpc_id`;
 - `/infra-network/vpc/subnet_private_1a`, `1b` e `1c`;
-- `/infra-network/vpc/subnet_public_1a`, `1b` e `1c`.
 
 Outputs publicados:
 

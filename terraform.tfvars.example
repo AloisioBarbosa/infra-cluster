@@ -3,8 +3,6 @@ region       = "us-east-1"
 environment  = "dev"
 k8s_version  = "1.33"
 
-ssm_vpc              = "/infra-network/vpc/vpc_id"
-ssm_public_subnets   = ["/infra-network/vpc/subnet_public_1a", "/infra-network/vpc/subnet_public_1b", "/infra-network/vpc/subnet_public_1c"]
 ssm_private_subnets  = ["/infra-network/vpc/subnet_private_1a", "/infra-network/vpc/subnet_private_1b", "/infra-network/vpc/subnet_private_1c"]
 ssm_pod_subnets      = ["/infra-network/vpc/subnet_private_1a", "/infra-network/vpc/subnet_private_1b", "/infra-network/vpc/subnet_private_1c"]
 

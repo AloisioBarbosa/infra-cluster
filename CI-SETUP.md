@@ -28,8 +28,6 @@ não deve ser reutilizada: seu trust está restrito àquele repositório.
 | `TF_VAR_REGION` | `us-east-1` |
 | `TF_VAR_ENVIRONMENT` | `dev` |
 | `TF_VAR_K8S_VERSION` | `1.33` |
-| `TF_VAR_SSM_VPC` | `/infra-network/vpc/vpc_id` |
-| `TF_VAR_SSM_PUBLIC_SUBNETS` | `["/infra-network/vpc/subnet_public_1a","/infra-network/vpc/subnet_public_1b","/infra-network/vpc/subnet_public_1c"]` |
 | `TF_VAR_SSM_PRIVATE_SUBNETS` | `["/infra-network/vpc/subnet_private_1a","/infra-network/vpc/subnet_private_1b","/infra-network/vpc/subnet_private_1c"]` |
 | `TF_VAR_SSM_POD_SUBNETS` | `["/infra-network/vpc/subnet_private_1a","/infra-network/vpc/subnet_private_1b","/infra-network/vpc/subnet_private_1c"]` |
 | `TF_VAR_NODES_INSTANCE_SIZES` | `["t3.medium"]` |
