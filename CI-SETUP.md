@@ -1,7 +1,8 @@
 # GitHub Actions: configuração do produto `infra-cluster`
 
-O pipeline valida todo Pull Request, gera um `terraform plan` autenticado via
-GitHub OIDC e aplica somente após merge em `main` ou acionamento manual. O job
+O pipeline valida todo Pull Request, gera um `terraform plan` autenticado com
+credenciais AWS armazenadas como secrets e aplica somente após merge em `main`
+ou acionamento manual. O job
 `apply` usa o environment `production`, que deve exigir aprovação. Nesta fase,
 o acesso AWS usa chaves estáticas como trade-off temporário para desbloquear o
 deploy; a migração para OIDC permanece como melhoria prioritária.
