@@ -32,9 +32,10 @@ Inclui:
 - outputs que formam o contrato com `infra-platform`.
 
 Não inclui novos serviços compartilhados, workloads de aplicação, rede ou
-observabilidade completa. `metrics-server` e `kube-state-metrics` ainda estão
-neste state por legado e serão migrados para `infra-platform` em uma PR futura,
-com movimentação de state planejada para evitar recriação.
+observabilidade completa. O `metrics-server` está em handoff para o
+`infra-platform`: o bloco `removed` retira sua propriedade deste state sem
+desinstalar o release. `kube-state-metrics` permanece temporariamente neste
+produto e será migrado em uma mudança futura.
 
 ## Dependências e contratos
 
@@ -112,8 +113,8 @@ revisão do plano e autorização explícita.
 1. Migrar a autenticação do pipeline para uma role OIDC exclusiva, gerenciada
    pelo `infra-bootstrap`, e eliminar as access keys estáticas.
 2. Restringir regras de security group atualmente amplas e validar conectividade.
-3. Migrar `metrics-server` e `kube-state-metrics` para `infra-platform` com
-   `terraform state mv`/import documentado.
+3. Concluir o import do `metrics-server` no `infra-platform` e, em uma mudança
+   separada, migrar `kube-state-metrics` pelo mesmo padrão não destrutivo.
 4. Publicar o contrato do cluster em SSM para reduzir acoplamento a remote state.
 5. Adicionar testes Terraform e política de upgrade periódico do EKS.
 

@@ -8,8 +8,9 @@ arquivo no mesmo PR que mudar o código correspondente.
 ## O que este repositório faz
 
 Provisiona o cluster EKS na AWS, consumindo os IDs de VPC/subnets publicados
-pelo `infra-network` via SSM Parameter Store. Também instala componentes de
-observabilidade básicos via Helm (`metrics-server`, `kube-state-metrics`).
+pelo `infra-network` via SSM Parameter Store. Instala temporariamente
+`kube-state-metrics`; o `metrics-server` está em handoff não destrutivo para o
+`infra-platform`.
 
 **Não** faz bootstrap do ArgoCD ainda — ver seção "O que NÃO existe" abaixo.
 
@@ -31,7 +32,7 @@ observabilidade básicos via Helm (`metrics-server`, `kube-state-metrics`).
 | `oidc.tf` | provedor OIDC do cluster (para IRSA) |
 | `kms.tf` | chave KMS usada na criptografia de secrets do cluster |
 | `sg.tf` | security groups |
-| `helm_metrics_server.tf` | `helm_release` do metrics-server (Bitnami chart) |
+| `removed_metrics_server.tf` | tombstone não destrutivo que remove `helm_release.metrics_server` deste state |
 | `helm_kube_state_metrics.tf` | `helm_release` do kube-state-metrics |
 | `outputs.tf` | outputs do cluster |
 | `terraform.tfvars.example` | exemplo de valores para as variáveis obrigatórias |
@@ -141,3 +142,13 @@ MIT. Mesmo racional do `infra-network`.
 - Separação por ambiente
 - Migração dos providers kubernetes/helm para v3
 - IAM role de OIDC criada na AWS ou secret `AWS_ROLE_ARN` configurado no GitHub
+
+## Handoff do Metrics Server
+
+O bloco `removed` com `destroy = false` deve ser aplicado antes do import no
+`infra-platform`. Não remova esse tombstone nem recrie `helm_release.metrics_server`
+neste repositório durante a migração. Ordem obrigatória:
+
+1. apply do `infra-cluster`, removendo apenas o endereço do state;
+2. import/apply do `infra-platform`, assumindo o release existente;
+3. validar `kubectl top nodes` e `kubectl top pods -A`.
