@@ -114,6 +114,11 @@ usam temporariamente `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`, lock nativo
 do backend S3 e todas as variáveis obrigatórias via repository variables.
 `CI-SETUP.md` documenta o trade-off e a migração futura para OIDC.
 
+O destroy é somente manual: requer `action = destroy`, confirmação
+`destroy-infra-cluster`, artifact de `terraform plan -destroy` e aprovação no
+environment `production`. Leia `docs/DESTROY-RUNBOOK.md`. Ordem obrigatória:
+`infra-platform` → `infra-cluster` → `infra-network`.
+
 Variables, Secrets e Environments foram verificados via API em 7 de agosto de
 2026. As credenciais estáticas funcionam e o plan chega à leitura do SSM.
 
