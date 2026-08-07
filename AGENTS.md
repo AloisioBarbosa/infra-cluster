@@ -116,9 +116,10 @@ do backend S3 e todas as variáveis obrigatórias via repository variables.
 Variables, Secrets e Environments foram verificados via API em 7 de agosto de
 2026. As credenciais estáticas funcionam e o plan chega à leitura do SSM.
 
-**Bloqueio atual:** a run `31144053653` do `infra-network` executou o job
-`Destroy Infrastructure`; por isso os parâmetros das sub-redes não existem.
-Leia `docs/CONTINUATION.md` antes de qualquer nova execução.
+**Estado verificado em 7 de agosto de 2026:** `infra-network` aplicado na run
+`31185537460`; `infra-cluster` aplicado na run `31186635717`; EKS
+`infra-cluster` `ACTIVE`, Kubernetes `1.33`, com node group `infra-cluster`.
+`docs/CONTINUATION.md` preserva o histórico de recuperação.
 
 Problemas já conhecidos no `infra-network` que provavelmente se repetem
 aqui, até prova em contrário:
