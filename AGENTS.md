@@ -63,14 +63,10 @@ o valor real é lido via `data "aws_ssm_parameter"` dentro deste repo. Os
 nomes devem bater exatamente com o que o `infra-network` publica (ver o
 `AGENTS.md` daquele repo para a lista completa).
 
-**Valor real decidido: `TF_VAR_project_name = infra-network` neste
-repositório também** — mesmo valor usado no `infra-network`, não o nome
-deste repositório (`infra-cluster`). O `project_name` vira o prefixo dos
-paths do SSM (`/infra-network/vpc/...`); se este repo usar um
-`project_name` diferente, os `data "aws_ssm_parameter"` abaixo vão tentar
-ler parâmetros que não existem e o `plan`/`apply` falha. Confirme se essa
-variable já foi criada como repository variable antes de assumir que o
-lookup do SSM funciona.
+**Contrato atual:** `TF_VAR_project_name = infra-cluster` identifica este
+produto e nomeia o cluster. Os inputs `TF_VAR_ssm_*` recebem explicitamente os
+paths publicados pelo `infra-network` sob `/infra-network/vpc/*`. O código não
+deriva os paths SSM de `project_name`; não acople esses conceitos novamente.
 
 ## Resolução de versão dos add-ons EKS
 
@@ -113,9 +109,10 @@ Mesmo padrão do `infra-network`, via `default_tags` no provider `aws`:
 
 ## CI/CD
 
-Mesmo padrão do `infra-network`: `.github/workflows/terraform.yml` com jobs
-`lint` → `trivy-scan` → `plan` → `apply`, mais `CI-SETUP.md` documentando
-o que falta configurar manualmente.
+`.github/workflows/terraform.yml` executa `validate` e `security`, seguido de
+`plan` em PR ou dispatch e `apply` em push para `main` ou dispatch. Plan/apply
+usam OIDC, lock nativo do backend S3 e todas as variáveis obrigatórias via
+repository variables. `CI-SETUP.md` documenta a configuração.
 
 **Ainda não verificamos via API o estado real das Variables/Secrets/
 Environments deste repositório** (diferente do `infra-network`, onde já
@@ -124,13 +121,10 @@ confirmamos). Não assuma que algo aqui está configurado só porque está no
 
 Problemas já conhecidos no `infra-network` que provavelmente se repetem
 aqui, até prova em contrário:
-- A policy IAM provavelmente não cobre o backend do Terraform (bucket S3 +
-  DynamoDB) — só os recursos gerenciados (EC2/EKS/IAM/SSM/KMS)
-- A autenticação pode ter migrado de OIDC pra chaves estáticas
-  (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`) — confirme qual método
-  está ativo no `terraform.yml` antes de debugar
-- `TF_VAR_project_name` precisa ser **`infra-network`** (não
-  `infra-cluster`) — ver seção de variáveis acima
+- A role OIDC precisa cobrir o backend S3, os parâmetros SSM consumidos e os
+  recursos gerenciados (EKS/EC2/IAM/KMS).
+- `TF_VAR_PROJECT_NAME` deve ser `infra-cluster`; os paths SSM devem manter o
+  prefixo `/infra-network/vpc/`.
 
 ## Licença
 
@@ -143,4 +137,4 @@ MIT. Mesmo racional do `infra-network`.
   `app-gitops`)
 - Separação por ambiente
 - Migração dos providers kubernetes/helm para v3
-- IAM role de OIDC configurada para o CI
+- IAM role de OIDC criada na AWS ou secret `AWS_ROLE_ARN` configurado no GitHub

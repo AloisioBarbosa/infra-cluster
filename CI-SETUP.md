@@ -1,37 +1,56 @@
-# Configuração necessária para o CI/CD funcionar
+# GitHub Actions: configuração do produto `infra-cluster`
 
-O workflow em `.github/workflows/terraform.yml` depende de itens que precisam
-ser configurados manualmente no GitHub (Settings → Secrets and variables →
-Actions), pois envolvem dados da sua conta AWS que este PR não tem acesso.
+O pipeline valida todo Pull Request, gera um `terraform plan` autenticado via
+GitHub OIDC e aplica somente após merge em `main` ou acionamento manual. O job
+`apply` usa o environment `production`, que deve exigir aprovação.
 
-## 1. Role de OIDC na AWS (sem chaves estáticas)
+## Secret
 
-Crie uma IAM Role com trust policy para o GitHub OIDC provider
-(`token.actions.githubusercontent.com`), restrita a este repositório, e
-adicione o ARN como secret:
+Crie a IAM Role no produto `infra-bootstrap`, com trust no provider
+`token.actions.githubusercontent.com`, restrita ao repositório
+`AloisioBarbosa/infra-cluster`, e cadastre apenas:
 
-- Secret: `AWS_ROLE_ARN`
+- `AWS_ROLE_ARN`: ARN da role assumida pelo GitHub Actions.
 
-## 2. Variáveis do backend do Terraform (não sensíveis → "Variables", não "Secrets")
+Não use access keys permanentes. A role precisa acessar o backend S3 (incluindo
+o lock file), ler os parâmetros SSM do `infra-network` e gerenciar EKS, EC2,
+IAM, KMS e o provider OIDC deste produto. A role existente do `infra-network`
+não deve ser reutilizada: seu trust está restrito àquele repositório.
 
-- `AWS_REGION`
-- `TF_STATE_BUCKET`
-- `TF_STATE_KEY` (ex: `infra-network/terraform.tfstate`)
-- `TF_LOCK_TABLE`
+## Repository variables
 
-## 3. Environments do GitHub (aprovação manual antes do apply)
+| Nome | Valor inicial |
+|---|---|
+| `AWS_REGION` | `us-east-1` |
+| `TF_STATE_BUCKET` | `orange-ks8-logs` |
+| `TF_STATE_KEY` | `cluster/dev/terraform.tfstate` |
+| `TF_VAR_PROJECT_NAME` | `infra-cluster` |
+| `TF_VAR_REGION` | `us-east-1` |
+| `TF_VAR_ENVIRONMENT` | `dev` |
+| `TF_VAR_K8S_VERSION` | `1.33` |
+| `TF_VAR_SSM_VPC` | `/infra-network/vpc/vpc_id` |
+| `TF_VAR_SSM_PUBLIC_SUBNETS` | `["/infra-network/vpc/subnet_public_1a","/infra-network/vpc/subnet_public_1b","/infra-network/vpc/subnet_public_1c"]` |
+| `TF_VAR_SSM_PRIVATE_SUBNETS` | `["/infra-network/vpc/subnet_private_1a","/infra-network/vpc/subnet_private_1b","/infra-network/vpc/subnet_private_1c"]` |
+| `TF_VAR_SSM_POD_SUBNETS` | `["/infra-network/vpc/subnet_private_1a","/infra-network/vpc/subnet_private_1b","/infra-network/vpc/subnet_private_1c"]` |
+| `TF_VAR_NODES_INSTANCE_SIZES` | `["t3.medium"]` |
+| `TF_VAR_AUTO_SCALE_OPTIONS` | `{"min":1,"max":3,"desired":2}` |
 
-O token usado para automatizar este PR não tem permissão para criar
-Environments via API. Configure manualmente em Settings → Environments:
+Os valores complexos são JSON válido porque o Terraform interpreta variáveis de
+ambiente de tipos `list` e `object` como HCL/JSON.
 
-- `plan` — sem restrição, usado só pelo job de plan em PRs
-- `production` — adicione você mesmo como *required reviewer*, para que o
-  job de `apply` fique pausado aguardando aprovação manual antes de rodar
+## Environments
 
-## 4. Variáveis de aplicação do Terraform
+- `plan`: sem aprovação, usado em PRs e em execuções manuais de plan.
+- `production`: com required reviewer e prevenção de self-review.
 
-As variáveis do próprio módulo (`project_name`, `k8s_version`, etc. — ver
-`terraform.tfvars.example`) ainda precisam ser passadas ao `terraform plan`
-e `terraform apply` no workflow, seja via `-var` explícito, seja via um
-`terraform.tfvars` versionado (sem segredos) ou `TF_VAR_*` nas variáveis
-do ambiente do GitHub.
+## Ordem de ativação
+
+1. Confirme que o `infra-network` foi aplicado e publicou os parâmetros SSM.
+2. Crie a role OIDC e o secret `AWS_ROLE_ARN`.
+3. Cadastre as repository variables.
+4. Crie os environments e proteja `production`.
+5. Abra a PR e revise o plan publicado como comentário.
+6. Faça merge; o apply aguardará aprovação no environment `production`.
+
+O pipeline não oferece `destroy`. Destruições devem usar um runbook separado,
+com revisão do plano e autorização explícita.
