@@ -15,6 +15,11 @@ on:
         options:
           - plan
           - apply
+          - destroy
+      confirmation:
+        description: Para destroy, digite destroy-infra-cluster
+        required: false
+        type: string
 
 concurrency:
   group: terraform-${{ vars.TF_STATE_KEY }}
@@ -168,3 +173,81 @@ jobs:
         run: terraform plan -out=tfplan
       - name: Terraform apply
         run: terraform apply -auto-approve tfplan
+
+  destroy-plan:
+    name: Destroy Plan
+    needs: [validate, security]
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+    environment: plan
+    permissions:
+      contents: read
+    env:
+      DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - name: Validar confirmacao
+        shell: bash
+        run: |
+          if [[ "$DESTROY_CONFIRMATION" != "destroy-infra-cluster" ]]; then
+            echo "Confirmacao invalida. Digite destroy-infra-cluster."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Terraform init
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="use_lockfile=true"
+      - name: Gerar plano de destruicao
+        run: |
+          terraform plan -destroy -out=destroy.tfplan
+          terraform show -no-color destroy.tfplan
+      - name: Armazenar plano revisavel
+        uses: actions/upload-artifact@v4
+        with:
+          name: infra-cluster-destroy-plan
+          path: destroy.tfplan
+          retention-days: 1
+
+  destroy-apply:
+    name: Destroy Apply
+    needs: destroy-plan
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Terraform init
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="use_lockfile=true"
+      - name: Baixar plano aprovado
+        uses: actions/download-artifact@v4
+        with:
+          name: infra-cluster-destroy-plan
+      - name: Aplicar destruicao aprovada
+        run: terraform apply -auto-approve destroy.tfplan

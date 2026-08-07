@@ -91,8 +91,10 @@ O incidente de dependência ausente foi resolvido. O
 [`registro de retomada`](docs/CONTINUATION.md) preserva a causa, a recuperação
 executada e as pendências restantes.
 
-O pipeline não disponibiliza destroy. Mudanças destrutivas exigem runbook,
-revisão do plano e autorização explícita.
+O pipeline disponibiliza destroy somente por acionamento manual, confirmação
+textual, plano armazenado e aprovação no environment `production`. Siga o
+[`runbook de desligamento`](docs/DESTROY-RUNBOOK.md). A ordem obrigatória é
+`infra-platform` antes de `infra-cluster`, e `infra-network` por último.
 
 ## Operação e rollback
 
