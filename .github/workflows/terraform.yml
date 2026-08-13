@@ -246,7 +246,7 @@ jobs:
             -backend-config="region=${{ vars.AWS_REGION }}" \
             -backend-config="use_lockfile=true"
       - name: Baixar plano aprovado
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: infra-cluster-destroy-plan
       - name: Aplicar destruicao aprovada
