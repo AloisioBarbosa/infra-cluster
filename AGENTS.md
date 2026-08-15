@@ -10,7 +10,7 @@ arquivo no mesmo PR que mudar o código correspondente.
 Provisiona o cluster EKS na AWS, consumindo os IDs de VPC/subnets publicados
 pelo `infra-network` via SSM Parameter Store. Instala temporariamente
 `kube-state-metrics`; o `metrics-server` está em handoff não destrutivo para o
-`infra-platform`.
+`infra-plataform`.
 
 **Não** faz bootstrap do ArgoCD ainda — ver seção "O que NÃO existe" abaixo.
 
@@ -117,7 +117,7 @@ do backend S3 e todas as variáveis obrigatórias via repository variables.
 O destroy é somente manual: requer `action = destroy`, confirmação
 `destroy-infra-cluster`, artifact de `terraform plan -destroy` e aprovação no
 environment `production`. Leia `docs/DESTROY-RUNBOOK.md`. Ordem obrigatória:
-`infra-platform` → `infra-cluster` → `infra-network`.
+`infra-plataform` → `infra-cluster` → `infra-network`.
 
 Variables, Secrets e Environments foram verificados via API em 7 de agosto de
 2026. As credenciais estáticas funcionam e o plan chega à leitura do SSM.
@@ -151,9 +151,9 @@ MIT. Mesmo racional do `infra-network`.
 ## Handoff do Metrics Server
 
 O bloco `removed` com `destroy = false` deve ser aplicado antes do import no
-`infra-platform`. Não remova esse tombstone nem recrie `helm_release.metrics_server`
+`infra-plataform`. Não remova esse tombstone nem recrie `helm_release.metrics_server`
 neste repositório durante a migração. Ordem obrigatória:
 
 1. apply do `infra-cluster`, removendo apenas o endereço do state;
-2. import/apply do `infra-platform`, assumindo o release existente;
+2. import/apply do `infra-plataform`, assumindo o release existente;
 3. validar `kubectl top nodes` e `kubectl top pods -A`.

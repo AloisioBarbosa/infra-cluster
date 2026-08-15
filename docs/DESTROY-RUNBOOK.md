@@ -9,11 +9,11 @@ Desligue sempre na ordem inversa das dependências:
 
 1. `infra-apps`;
 2. `infra-observability`;
-3. `infra-platform`;
+3. `infra-plataform`;
 4. `infra-cluster`;
 5. `infra-network`.
 
-No estado atual, confirme especialmente que o `infra-platform` já removeu seus
+No estado atual, confirme especialmente que o `infra-plataform` já removeu seus
 releases antes de destruir o EKS. Caso contrário, seu state continuará contendo
 recursos Kubernetes inacessíveis depois que o cluster desaparecer.
 
@@ -50,5 +50,5 @@ O backend e o state S3 são mantidos pelo `infra-bootstrap`; não apague o state
 
 ## Recriação
 
-Recrie na ordem direta: `infra-network` → `infra-cluster` → `infra-platform` →
+Recrie na ordem direta: `infra-network` → `infra-cluster` → `infra-plataform` →
 `infra-observability` → `infra-apps`. Revise cada plan antes do apply.
