@@ -30,6 +30,8 @@ Inclui:
   `eks-pod-identity-agent`;
 - autenticação, access entry dos nodes e provider OIDC do cluster;
 - outputs que formam o contrato com `infra-plataform`.
+- Fargate Profile seletivo para add-ons críticos;
+- IAM/IRSA e interrupções Spot do Karpenter.
 
 Não inclui novos serviços compartilhados, workloads de aplicação, rede ou
 observabilidade completa. O `metrics-server` está em handoff para o
@@ -59,6 +61,10 @@ Outputs publicados:
 - `cluster_oidc_issuer_url`;
 - `cluster_security_group_id`;
 - `node_role_arn`.
+- `fargate_pod_execution_role_arn`;
+- `karpenter_controller_role_arn`;
+- `karpenter_interruption_queue_name`;
+- `karpenter_node_instance_profile_name`.
 
 ## Uso local
 

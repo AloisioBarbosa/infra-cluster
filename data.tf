@@ -1,3 +1,7 @@
+data "aws_caller_identity" "current" {}
+
+data "aws_partition" "current" {}
+
 data "aws_ssm_parameter" "private_subnets" {
   count = length(var.ssm_private_subnets)
   name  = var.ssm_private_subnets[count.index]

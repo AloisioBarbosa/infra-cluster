@@ -35,6 +35,9 @@ pelo `infra-network` via SSM Parameter Store. Instala temporariamente
 | `removed_metrics_server.tf` | tombstone não destrutivo que remove `helm_release.metrics_server` deste state |
 | `helm_kube_state_metrics.tf` | `helm_release` do kube-state-metrics |
 | `outputs.tf` | outputs do cluster |
+| `fargate.tf` | role e profile Fargate seletivo para add-ons críticos |
+| `karpenter_iam.tf` | role IRSA e policy versionada do controller Karpenter |
+| `karpenter_interruption.tf` | fila SQS e regras EventBridge de interrupção |
 | `terraform.tfvars.example` | exemplo de valores para as variáveis obrigatórias |
 
 **Não existe** separação de ambiente (dev/staging/prod) — único diretório
@@ -118,6 +121,11 @@ O destroy é somente manual: requer `action = destroy`, confirmação
 `destroy-infra-cluster`, artifact de `terraform plan -destroy` e aprovação no
 environment `production`. Leia `docs/DESTROY-RUNBOOK.md`. Ordem obrigatória:
 `infra-plataform` → `infra-cluster` → `infra-network`.
+
+O Managed Node Group permanece como fallback operacional. CoreDNS, Metrics
+Server e o controller do Karpenter são selecionados para EKS Fargate. O
+Karpenter usa IRSA, fila SQS de interrupções e o instance profile já usado
+pelos managed nodes; não remova esses contratos antes do cutover validado.
 
 Variables, Secrets e Environments foram verificados via API em 7 de agosto de
 2026. As credenciais estáticas funcionam e o plan chega à leitura do SSM.
