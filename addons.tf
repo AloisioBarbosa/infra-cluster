@@ -18,9 +18,14 @@ resource "aws_eks_addon" "coredns" {
   addon_version               = coalesce(var.addon_coredns_version, data.aws_eks_addon_version.coredns.version)
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
+  configuration_values = jsonencode({
+    computeType  = "Fargate"
+    replicaCount = 2
+  })
 
   depends_on = [
-    aws_eks_access_entry.nodes
+    aws_eks_access_entry.nodes,
+    aws_eks_fargate_profile.critical_addons,
   ]
 }
 

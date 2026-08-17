@@ -60,7 +60,7 @@ Repita para `1b` e `1c`.
 - Proteger o environment `production` com aprovação obrigatória.
 - Restringir as regras amplas de security group antes de classificar o produto
   como production-ready.
-- Migrar `metrics-server` e `kube-state-metrics` para `infra-platform` em uma
+- Migrar `metrics-server` e `kube-state-metrics` para `infra-plataform` em uma
   mudança futura com preservação explícita do state.
 
 ## Guardrails permanentes

@@ -68,4 +68,4 @@ dia; o job **Destroy Apply** usa exatamente esse plano e aguarda aprovação no
 environment `production`.
 
 Antes de executar, siga [`docs/DESTROY-RUNBOOK.md`](docs/DESTROY-RUNBOOK.md) e
-destrua o `infra-platform`. Nunca destrua a rede antes do cluster.
+destrua o `infra-plataform`. Nunca destrua a rede antes do cluster.

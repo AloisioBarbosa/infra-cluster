@@ -29,11 +29,13 @@ Inclui:
 - add-ons gerenciados `vpc-cni`, `coredns`, `kube-proxy` e
   `eks-pod-identity-agent`;
 - autenticação, access entry dos nodes e provider OIDC do cluster;
-- outputs que formam o contrato com `infra-platform`.
+- outputs que formam o contrato com `infra-plataform`.
+- Fargate Profile seletivo para add-ons críticos;
+- IAM/IRSA e interrupções Spot do Karpenter.
 
 Não inclui novos serviços compartilhados, workloads de aplicação, rede ou
 observabilidade completa. O `metrics-server` está em handoff para o
-`infra-platform`: o bloco `removed` retira sua propriedade deste state sem
+`infra-plataform`: o bloco `removed` retira sua propriedade deste state sem
 desinstalar o release. `kube-state-metrics` permanece temporariamente neste
 produto e será migrado em uma mudança futura.
 
@@ -43,7 +45,7 @@ produto e será migrado em uma mudança futura.
 flowchart LR
   B["infra-bootstrap\nbackend, IAM e governanca"] --> N["infra-network\nVPC e sub-redes"]
   N -->|"parametros SSM /infra-network/vpc/*"| C["infra-cluster\nEKS e nodes"]
-  C -->|"outputs do cluster"| P["infra-platform\nservicos compartilhados"]
+  C -->|"outputs do cluster"| P["infra-plataform\nservicos compartilhados"]
   P --> A["infra-apps\nworkloads GitOps"]
   C --> O["infra-observability\ntelemetria"]
 ```
@@ -59,6 +61,10 @@ Outputs publicados:
 - `cluster_oidc_issuer_url`;
 - `cluster_security_group_id`;
 - `node_role_arn`.
+- `fargate_pod_execution_role_arn`;
+- `karpenter_controller_role_arn`;
+- `karpenter_interruption_queue_name`;
+- `karpenter_node_instance_profile_name`.
 
 ## Uso local
 
@@ -95,7 +101,7 @@ executada e as pendências restantes.
 O pipeline disponibiliza destroy somente por acionamento manual, confirmação
 textual, plano armazenado e aprovação no environment `production`. Siga o
 [`runbook de desligamento`](docs/DESTROY-RUNBOOK.md). A ordem obrigatória é
-`infra-platform` antes de `infra-cluster`, e `infra-network` por último.
+`infra-plataform` antes de `infra-cluster`, e `infra-network` por último.
 
 ## Operação e rollback
 
@@ -115,7 +121,7 @@ textual, plano armazenado e aprovação no environment `production`. Siga o
 1. Migrar a autenticação do pipeline para uma role OIDC exclusiva, gerenciada
    pelo `infra-bootstrap`, e eliminar as access keys estáticas.
 2. Restringir regras de security group atualmente amplas e validar conectividade.
-3. Concluir o import do `metrics-server` no `infra-platform` e, em uma mudança
+3. Concluir o import do `metrics-server` no `infra-plataform` e, em uma mudança
    separada, migrar `kube-state-metrics` pelo mesmo padrão não destrutivo.
 4. Publicar o contrato do cluster em SSM para reduzir acoplamento a remote state.
 5. Adicionar testes Terraform e política de upgrade periódico do EKS.
