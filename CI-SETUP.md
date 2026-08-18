@@ -1,24 +1,25 @@
 # GitHub Actions: configuração do produto `infra-cluster`
 
-O pipeline valida todo Pull Request, gera um `terraform plan` autenticado com
-credenciais AWS armazenadas como secrets e aplica somente após merge em `main`
-ou acionamento manual. O job
-`apply` usa o environment `production`, que deve exigir aprovação. Nesta fase,
-o acesso AWS usa chaves estáticas como trade-off temporário para desbloquear o
-deploy; a migração para OIDC permanece como melhoria prioritária.
+O pipeline valida todo Pull Request, gera um `terraform plan` autenticado via
+GitHub Actions OIDC e aplica somente após merge em `main` ou acionamento
+manual. O job `apply` usa o environment `production`, que deve exigir
+aprovação. Nenhuma chave AWS de longa duração é necessária no repositório.
 
 ## Secrets
 
-- `AWS_ACCESS_KEY_ID`;
-- `AWS_SECRET_ACCESS_KEY`.
+- `AWS_ROLE_ARN`: ARN da role
+  `GitHubActionsOIDCInfraClusterRole`, provisionada pelo `infra-bootstrap`.
 
-Use um usuário técnico dedicado, rotacione as chaves e restrinja sua policy ao
-backend S3, leitura dos parâmetros SSM e recursos EKS/EC2/IAM/KMS/OIDC deste
-produto. Nunca use credenciais de usuário pessoal ou root.
+Valor esperado para a conta atual:
 
-Melhoria futura: criar no `infra-bootstrap` uma IAM Role exclusiva para
-`infra-cluster`, com trust em `repo:AloisioBarbosa/infra-cluster:*`, substituir
-os secrets acima por `AWS_ROLE_ARN` e restaurar `id-token: write` no workflow.
+```text
+arn:aws:iam::920278691034:role/GitHubActionsOIDCInfraClusterRole
+```
+
+A trust policy é restrita ao repositório e aos environments `plan` e
+`production`. A policy de permissões cobre o backend S3, os parâmetros SSM e os
+recursos AWS gerenciados por este produto. Ambos são mantidos pelo
+`infra-bootstrap`.
 
 ## Repository variables
 
@@ -51,7 +52,8 @@ contas, ambientes ou reconstruções:
 
 1. Confirme que o `infra-network` está aplicado e publicou os três parâmetros
    SSM de sub-redes privadas.
-2. Confirme as credenciais do usuário técnico nos dois secrets.
+2. Confirme o secret `AWS_ROLE_ARN` e a trust OIDC para os environments `plan`
+   e `production`.
 3. Confirme as repository variables.
 4. Proteja o environment `production`.
 5. Abra uma PR e revise o plan publicado como comentário.

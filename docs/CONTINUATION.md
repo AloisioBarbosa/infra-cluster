@@ -1,6 +1,6 @@
 # Registro de retomada do `infra-cluster`
 
-Atualizado em 7 de agosto de 2026.
+Atualizado em 17 de agosto de 2026.
 
 ## Resultado
 
@@ -9,8 +9,8 @@ Atualizado em 7 de agosto de 2026.
 - Conta AWS confirmada: `920278691034`.
 - Região confirmada: `us-east-1`.
 - `terraform fmt`, `terraform validate`, TFLint e Trivy estão passando.
-- A autenticação do GitHub Actions com `AWS_ACCESS_KEY_ID` e
-  `AWS_SECRET_ACCESS_KEY` funciona.
+- A autenticação do GitHub Actions foi migrada para a role OIDC exclusiva
+  `GitHubActionsOIDCInfraClusterRole`, gerenciada pelo `infra-bootstrap`.
 - `infra-network` restaurado com apply bem-sucedido na run `31185537460`.
 - `infra-cluster` implantado com apply bem-sucedido na run `31186635717`.
 - EKS `infra-cluster` confirmado como `ACTIVE`, Kubernetes `1.33`, com o managed
@@ -53,10 +53,10 @@ Repita para `1b` e `1c`.
 
 ## Trade-offs e pendências
 
-- Credenciais estáticas estão sendo usadas temporariamente para desbloquear a
-  pipeline. Rotacioná-las após o uso e migrar para uma role OIDC exclusiva do
-  `infra-cluster`, gerenciada pelo `infra-bootstrap`.
-- Não reutilizar a role `GitHubActionsOIDCInfraNetworkRole` como desenho final.
+- Remover os secrets legados `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` do
+  repositório depois de validar uma execução completa via OIDC.
+- Manter a trust da role restrita ao repositório `infra-cluster` e aos
+  environments `plan` e `production`.
 - Proteger o environment `production` com aprovação obrigatória.
 - Restringir as regras amplas de security group antes de classificar o produto
   como production-ready.

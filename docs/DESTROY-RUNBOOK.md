@@ -23,6 +23,8 @@ recursos Kubernetes inacessíveis depois que o cluster desaparecer.
 - confirmar que não há workloads ou dados persistentes necessários;
 - confirmar backups e snapshots de volumes, se existirem;
 - verificar que nenhum apply de outro produto está em andamento;
+- confirmar que `AWS_ROLE_ARN` aponta para a role OIDC exclusiva do
+  `infra-cluster`;
 - proteger o environment `production` com aprovação obrigatória.
 
 ## Execução

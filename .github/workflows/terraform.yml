@@ -96,6 +96,7 @@ jobs:
     environment: plan
     permissions:
       contents: read
+      id-token: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v6
@@ -105,9 +106,9 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-plan
       - name: Terraform init
         run: |
           terraform init -reconfigure \
@@ -152,6 +153,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
@@ -160,9 +162,9 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-apply
       - name: Terraform init
         run: |
           terraform init -reconfigure \
@@ -183,6 +185,7 @@ jobs:
     environment: plan
     permissions:
       contents: read
+      id-token: write
     env:
       DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
@@ -200,9 +203,9 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-destroy-plan
       - name: Terraform init
         run: |
           terraform init -reconfigure \
@@ -228,6 +231,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
@@ -236,9 +240,9 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-destroy-apply
       - name: Terraform init
         run: |
           terraform init -reconfigure \
