@@ -7,7 +7,8 @@ ssm_private_subnets  = ["/infra-network/vpc/subnet_private_1a", "/infra-network/
 ssm_pod_subnets      = ["/infra-network/vpc/subnet_private_1a", "/infra-network/vpc/subnet_private_1b", "/infra-network/vpc/subnet_private_1c"]
 
 nodes_instance_sizes = ["t3.medium"]
-github_actions_role_arn = "arn:aws:iam::920278691034:role/GitHubActionsOIDCInfraClusterRole"
+github_actions_role_arn                 = "arn:aws:iam::123456789012:role/GitHubActionsOIDCInfraClusterRole"
+infra_plataform_github_actions_role_arn = "arn:aws:iam::123456789012:role/GitHubActionsOIDCInfraPlataformRole"
 
 auto_scale_options = {
   min     = 1

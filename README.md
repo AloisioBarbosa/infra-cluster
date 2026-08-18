@@ -66,6 +66,11 @@ Outputs publicados:
 - `karpenter_interruption_queue_name`;
 - `karpenter_node_instance_profile_name`.
 
+O pipeline do `infra-plataform` recebe acesso Kubernetes por um EKS Access
+Entry dedicado à role `GitHubActionsOIDCInfraPlataformRole`. A role é publicada
+pelo `infra-bootstrap`; este repositório gerencia apenas sua autorização no
+cluster.
+
 ## Uso local
 
 Pré-requisitos: Terraform 1.7 ou superior, credenciais AWS e o

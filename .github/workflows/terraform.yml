@@ -41,6 +41,7 @@ env:
   TF_VAR_nodes_instance_sizes: ${{ vars.TF_VAR_NODES_INSTANCE_SIZES }}
   TF_VAR_auto_scale_options: ${{ vars.TF_VAR_AUTO_SCALE_OPTIONS }}
   TF_VAR_github_actions_role_arn: ${{ secrets.AWS_ROLE_ARN }}
+  TF_VAR_infra_plataform_github_actions_role_arn: ${{ vars.INFRA_PLATAFORM_AWS_ROLE_ARN }}
 
 jobs:
   validate:
