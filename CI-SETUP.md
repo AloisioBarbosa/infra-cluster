@@ -21,6 +21,12 @@ A trust policy é restrita ao repositório e aos environments `plan` e
 recursos AWS gerenciados por este produto. Ambos são mantidos pelo
 `infra-bootstrap`.
 
+O pipeline usa o mesmo ARN como `TF_VAR_github_actions_role_arn`. Antes de
+consultar recursos Helm, garante idempotentemente o EKS Access Entry e associa
+`AmazonEKSClusterAdminPolicy`. Os blocos `import` em `access_entries.tf` adotam
+esse acesso no state; isso é necessário para migrar clusters originalmente
+criados pela identidade estática antiga.
+
 ## Repository variables
 
 | Nome | Valor inicial |

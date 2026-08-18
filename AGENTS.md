@@ -54,6 +54,7 @@ variable "ssm_private_subnets"       { type = list(string) }         # nomes dos
 variable "ssm_pod_subnets"           { type = list(string) }         # nomes dos parametros SSM (reaproveita subnets privadas)
 variable "auto_scale_options"        { type = object({ min = number, max = number, desired = number }) }
 variable "nodes_instance_sizes"      { type = list(string) }
+variable "github_actions_role_arn"   { type = string }               # role OIDC exclusiva do pipeline
 variable "addon_cni_version"         { type = string, default = null }  # override opcional
 variable "addon_coredns_version"     { type = string, default = null }  # override opcional
 variable "addon_kubeproxy_version"   { type = string, default = null }  # override opcional
@@ -118,6 +119,12 @@ publicada pelo `infra-bootstrap`; o workflow requer `id-token: write` e o secret
 `AWS_ROLE_ARN`. A trust cobre os environments `plan` e `production`. O pipeline
 usa lock nativo do backend S3 e todas as variáveis obrigatórias via repository
 variables. Não reintroduza chaves AWS de longa duração.
+
+Antes do Terraform consultar o provider Helm, os jobs AWS garantem de forma
+idempotente um EKS Access Entry para `AWS_ROLE_ARN` associado à policy
+`AmazonEKSClusterAdminPolicy`. `access_entries.tf` contém os recursos e imports
+declarativos que adotam esse bootstrap no state. Esse contrato resolve a
+migração do cluster originalmente criado por `github-user`.
 
 O destroy é somente manual: requer `action = destroy`, confirmação
 `destroy-infra-cluster`, artifact de `terraform plan -destroy` e aprovação no
