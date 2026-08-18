@@ -57,6 +57,16 @@ variable "github_actions_role_arn" {
   }
 }
 
+variable "infra_plataform_github_actions_role_arn" {
+  type        = string
+  description = "ARN da role OIDC do infra-plataform autorizada a administrar os serviços compartilhados no cluster"
+
+  validation {
+    condition     = can(regex("^arn:aws:iam::[0-9]{12}:role/GitHubActionsOIDCInfraPlataformRole$", var.infra_plataform_github_actions_role_arn))
+    error_message = "infra_plataform_github_actions_role_arn deve apontar para GitHubActionsOIDCInfraPlataformRole."
+  }
+}
+
 variable "addon_cni_version" {
   type        = string
   default     = null

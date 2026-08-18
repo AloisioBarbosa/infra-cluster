@@ -55,6 +55,7 @@ variable "ssm_pod_subnets"           { type = list(string) }         # nomes dos
 variable "auto_scale_options"        { type = object({ min = number, max = number, desired = number }) }
 variable "nodes_instance_sizes"      { type = list(string) }
 variable "github_actions_role_arn"   { type = string }               # role OIDC exclusiva do pipeline
+variable "infra_plataform_github_actions_role_arn" { type = string } # role OIDC consumidora do cluster
 variable "addon_cni_version"         { type = string, default = null }  # override opcional
 variable "addon_coredns_version"     { type = string, default = null }  # override opcional
 variable "addon_kubeproxy_version"   { type = string, default = null }  # override opcional
@@ -125,6 +126,12 @@ idempotente um EKS Access Entry para `AWS_ROLE_ARN` associado à policy
 `AmazonEKSClusterAdminPolicy`. `access_entries.tf` contém os recursos e imports
 declarativos que adotam esse bootstrap no state. Esse contrato resolve a
 migração do cluster originalmente criado por `github-user`.
+
+O cluster também publica um Access Entry para a role
+`GitHubActionsOIDCInfraPlataformRole`, associada a
+`AmazonEKSClusterAdminPolicy`. O escopo cluster é necessário para que o produto
+de plataforma instale CRDs e recursos cluster-scoped do Karpenter. A role e sua
+trust OIDC continuam pertencendo ao `infra-bootstrap`.
 
 O destroy é somente manual: requer `action = destroy`, confirmação
 `destroy-infra-cluster`, artifact de `terraform plan -destroy` e aprovação no
