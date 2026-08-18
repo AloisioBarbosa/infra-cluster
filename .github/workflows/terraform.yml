@@ -40,6 +40,7 @@ env:
   TF_VAR_ssm_pod_subnets: ${{ vars.TF_VAR_SSM_POD_SUBNETS }}
   TF_VAR_nodes_instance_sizes: ${{ vars.TF_VAR_NODES_INSTANCE_SIZES }}
   TF_VAR_auto_scale_options: ${{ vars.TF_VAR_AUTO_SCALE_OPTIONS }}
+  TF_VAR_github_actions_role_arn: ${{ secrets.AWS_ROLE_ARN }}
 
 jobs:
   validate:
@@ -96,6 +97,7 @@ jobs:
     environment: plan
     permissions:
       contents: read
+      id-token: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v6
@@ -105,9 +107,26 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-plan
+      - name: Garantir acesso EKS da role OIDC
+        shell: bash
+        run: |
+          if ! aws eks describe-access-entry \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" >/dev/null 2>&1; then
+            aws eks create-access-entry \
+              --cluster-name "$TF_VAR_project_name" \
+              --principal-arn "$TF_VAR_github_actions_role_arn" \
+              --type STANDARD
+          fi
+
+          aws eks associate-access-policy \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" \
+            --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+            --access-scope type=cluster
       - name: Terraform init
         run: |
           terraform init -reconfigure \
@@ -152,6 +171,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
@@ -160,9 +180,26 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-apply
+      - name: Garantir acesso EKS da role OIDC
+        shell: bash
+        run: |
+          if ! aws eks describe-access-entry \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" >/dev/null 2>&1; then
+            aws eks create-access-entry \
+              --cluster-name "$TF_VAR_project_name" \
+              --principal-arn "$TF_VAR_github_actions_role_arn" \
+              --type STANDARD
+          fi
+
+          aws eks associate-access-policy \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" \
+            --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+            --access-scope type=cluster
       - name: Terraform init
         run: |
           terraform init -reconfigure \
@@ -183,6 +220,7 @@ jobs:
     environment: plan
     permissions:
       contents: read
+      id-token: write
     env:
       DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
@@ -200,9 +238,26 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-destroy-plan
+      - name: Garantir acesso EKS da role OIDC
+        shell: bash
+        run: |
+          if ! aws eks describe-access-entry \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" >/dev/null 2>&1; then
+            aws eks create-access-entry \
+              --cluster-name "$TF_VAR_project_name" \
+              --principal-arn "$TF_VAR_github_actions_role_arn" \
+              --type STANDARD
+          fi
+
+          aws eks associate-access-policy \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" \
+            --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+            --access-scope type=cluster
       - name: Terraform init
         run: |
           terraform init -reconfigure \
@@ -228,6 +283,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
@@ -236,9 +292,26 @@ jobs:
       - name: Configurar credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: infra-cluster-${{ github.run_id }}-destroy-apply
+      - name: Garantir acesso EKS da role OIDC
+        shell: bash
+        run: |
+          if ! aws eks describe-access-entry \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" >/dev/null 2>&1; then
+            aws eks create-access-entry \
+              --cluster-name "$TF_VAR_project_name" \
+              --principal-arn "$TF_VAR_github_actions_role_arn" \
+              --type STANDARD
+          fi
+
+          aws eks associate-access-policy \
+            --cluster-name "$TF_VAR_project_name" \
+            --principal-arn "$TF_VAR_github_actions_role_arn" \
+            --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+            --access-scope type=cluster
       - name: Terraform init
         run: |
           terraform init -reconfigure \

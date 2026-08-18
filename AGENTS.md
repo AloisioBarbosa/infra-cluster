@@ -54,6 +54,7 @@ variable "ssm_private_subnets"       { type = list(string) }         # nomes dos
 variable "ssm_pod_subnets"           { type = list(string) }         # nomes dos parametros SSM (reaproveita subnets privadas)
 variable "auto_scale_options"        { type = object({ min = number, max = number, desired = number }) }
 variable "nodes_instance_sizes"      { type = list(string) }
+variable "github_actions_role_arn"   { type = string }               # role OIDC exclusiva do pipeline
 variable "addon_cni_version"         { type = string, default = null }  # override opcional
 variable "addon_coredns_version"     { type = string, default = null }  # override opcional
 variable "addon_kubeproxy_version"   { type = string, default = null }  # override opcional
@@ -113,9 +114,17 @@ Mesmo padrão do `infra-network`, via `default_tags` no provider `aws`:
 
 `.github/workflows/terraform.yml` executa `validate` e `security`, seguido de
 `plan` em PR ou dispatch e `apply` em push para `main` ou dispatch. Plan/apply
-usam temporariamente `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`, lock nativo
-do backend S3 e todas as variáveis obrigatórias via repository variables.
-`CI-SETUP.md` documenta o trade-off e a migração futura para OIDC.
+assumem via GitHub Actions OIDC a role `GitHubActionsOIDCInfraClusterRole`,
+publicada pelo `infra-bootstrap`; o workflow requer `id-token: write` e o secret
+`AWS_ROLE_ARN`. A trust cobre os environments `plan` e `production`. O pipeline
+usa lock nativo do backend S3 e todas as variáveis obrigatórias via repository
+variables. Não reintroduza chaves AWS de longa duração.
+
+Antes do Terraform consultar o provider Helm, os jobs AWS garantem de forma
+idempotente um EKS Access Entry para `AWS_ROLE_ARN` associado à policy
+`AmazonEKSClusterAdminPolicy`. `access_entries.tf` contém os recursos e imports
+declarativos que adotam esse bootstrap no state. Esse contrato resolve a
+migração do cluster originalmente criado por `github-user`.
 
 O destroy é somente manual: requer `action = destroy`, confirmação
 `destroy-infra-cluster`, artifact de `terraform plan -destroy` e aprovação no
@@ -127,19 +136,18 @@ Server e o controller do Karpenter são selecionados para EKS Fargate. O
 Karpenter usa IRSA, fila SQS de interrupções e o instance profile já usado
 pelos managed nodes; não remova esses contratos antes do cutover validado.
 
-Variables, Secrets e Environments foram verificados via API em 7 de agosto de
-2026. As credenciais estáticas funcionam e o plan chega à leitura do SSM.
+O secret `AWS_ROLE_ARN` e a trust OIDC para `plan` e `production` foram
+verificados via API em 17 de agosto de 2026.
 
 **Estado verificado em 7 de agosto de 2026:** `infra-network` aplicado na run
 `31185537460`; `infra-cluster` aplicado na run `31186635717`; EKS
 `infra-cluster` `ACTIVE`, Kubernetes `1.33`, com node group `infra-cluster`.
 `docs/CONTINUATION.md` preserva o histórico de recuperação.
 
-Problemas já conhecidos no `infra-network` que provavelmente se repetem
-aqui, até prova em contrário:
-- O usuário técnico do CI precisa cobrir o backend S3, os parâmetros SSM
-  consumidos e os recursos gerenciados (EKS/EC2/IAM/KMS). OIDC é uma melhoria
-  prioritária e deve ser implementado no `infra-bootstrap`.
+Contratos operacionais importantes:
+- a policy da role OIDC precisa cobrir o backend S3, os parâmetros SSM
+  consumidos e os recursos gerenciados pelo cluster, incluindo SQS e
+  EventBridge usados pelo Karpenter;
 - `TF_VAR_PROJECT_NAME` deve ser `infra-cluster`; os paths SSM devem manter o
   prefixo `/infra-network/vpc/`.
 
@@ -154,7 +162,6 @@ MIT. Mesmo racional do `infra-network`.
   `app-gitops`)
 - Separação por ambiente
 - Migração dos providers kubernetes/helm para v3
-- IAM role de OIDC criada na AWS ou secret `AWS_ROLE_ARN` configurado no GitHub
 
 ## Handoff do Metrics Server
 

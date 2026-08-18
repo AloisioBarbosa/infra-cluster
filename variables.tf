@@ -47,6 +47,16 @@ variable "nodes_instance_sizes" {
   description = "Lista de tamanhos das instâncias do projeto"
 }
 
+variable "github_actions_role_arn" {
+  type        = string
+  description = "ARN da role OIDC do GitHub Actions autorizada a administrar recursos Kubernetes durante o pipeline"
+
+  validation {
+    condition     = can(regex("^arn:aws:iam::[0-9]{12}:role/GitHubActionsOIDCInfraClusterRole$", var.github_actions_role_arn))
+    error_message = "github_actions_role_arn deve apontar para a role GitHubActionsOIDCInfraClusterRole."
+  }
+}
+
 variable "addon_cni_version" {
   type        = string
   default     = null
