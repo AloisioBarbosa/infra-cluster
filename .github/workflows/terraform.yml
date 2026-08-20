@@ -271,7 +271,7 @@ jobs:
           terraform plan -destroy -out=destroy.tfplan
           terraform show -no-color destroy.tfplan
       - name: Armazenar plano revisavel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: infra-cluster-destroy-plan
           path: destroy.tfplan
