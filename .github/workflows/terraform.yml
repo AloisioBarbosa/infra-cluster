@@ -106,7 +106,7 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - name: Configurar credenciais AWS
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -179,7 +179,7 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - name: Configurar credenciais AWS
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -237,7 +237,7 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - name: Configurar credenciais AWS
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -291,7 +291,7 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - name: Configurar credenciais AWS
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
